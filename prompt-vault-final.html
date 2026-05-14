@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#1c1410;--surface:rgba(38,28,20,0.92);--surface2:rgba(48,36,26,0.85);
+  --surface3:rgba(60,44,30,0.8);--border:rgba(180,130,80,0.15);--border2:rgba(180,130,80,0.28);
+  --text:#f0e6d6;--text2:#b89878;--text3:#7a6248;
+  --accent:#c9874a;--accent-bg:rgba(201,135,74,0.12);
+  --imp:#d94f4f;--imp-bg:rgba(217,79,79,0.1);
+  --success:#5fa86a;--success-bg:rgba(95,168,106,0.1);
+  --r:10px;--rl:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:13px}
+body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background 0.4s}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 20% 20%,rgba(180,100,40,0.08) 0%,transparent 60%),
+  radial-gradient(ellipse at 80% 80%,rgba(120,60,20,0.10) 0%,transparent 60%);opacity:1}
+body>*{position:relative;z-index:1}
+body.has-bg{background-attachment:fixed;background-size:cover;background-position:center}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* PASSWORD */
+.pw-overlay{position:fixed;inset:0;background:rgba(10,7,4,0.97);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
+.pw-box{background:rgba(38,28,20,0.98);border:1px solid var(--border2);border-radius:18px;padding:36px 40px;width:min(380px,90vw);display:flex;flex-direction:column;gap:18px;box-shadow:0 24px 60px rgba(0,0,0,0.6)}
+.pw-logo{font-family:'Instrument Serif',serif;font-size:26px;color:var(--text);text-align:center}
+.pw-logo span{color:var(--accent);font-style:italic}
+.pw-sub{font-size:12px;color:var(--text3);text-align:center;margin-top:-10px;line-height:1.6}
+.pw-input{font-family:'Geist',sans-serif;font-size:13px;padding:11px 14px;border:1px solid var(--border2);border-radius:var(--r);background:rgba(0,0,0,0.3);color:var(--text);outline:none;width:100%;transition:border-color 0.2s}
+.pw-input:focus{border-color:var(--accent)}
+.pw-input::placeholder{color:var(--text3)}
+.pw-btn{width:100%;padding:11px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-family:'Geist',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s}
+.pw-btn:hover{background:#b5763c}
+.pw-error{font-size:11px;color:var(--imp);text-align:center;display:none}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.pw-shake{animation:shake 0.35s ease}
+
+/* TOPBAR */
+.topbar{background:rgba(28,20,16,0.96);border-bottom:1px solid var(--border);height:54px;display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:200;backdrop-filter:blur(12px)}
+.brand{font-family:'Instrument Serif',serif;font-size:20px;color:var(--text);letter-spacing:-0.3px;flex-shrink:0}
+.brand span{color:var(--accent);font-style:italic}
+.page-tabs{display:flex;align-items:center;gap:2px;overflow-x:auto;flex:1}
+.page-tabs::-webkit-scrollbar{height:2px}
+.ptab{font-size:12px;font-weight:500;color:var(--text3);padding:6px 13px;border-radius:7px;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:1px solid transparent;background:none;font-family:'Geist',sans-serif;display:flex;align-items:center;gap:6px}
+.ptab:hover{background:var(--surface2);color:var(--text)}
+.ptab.active{background:var(--surface2);border-color:var(--border2);color:var(--text);font-weight:600}
+.tab-count{font-size:10px;background:rgba(180,130,80,0.1);border-radius:10px;padding:1px 6px;color:var(--text3);font-weight:400}
+.ptab.active .tab-count{background:var(--accent-bg);color:var(--accent)}
+.new-page-btn{font-size:18px;color:var(--text3);background:none;border:none;cursor:pointer;padding:4px 10px;border-radius:6px;transition:all 0.15s;flex-shrink:0;line-height:1}
+.new-page-btn:hover{color:var(--accent);background:var(--accent-bg)}
+.sync-indicator{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;flex-shrink:0}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background 0.3s}
+.sync-dot.syncing{background:var(--accent);animation:pulse 1s infinite}
+.sync-dot.ok{background:var(--success)}
+.sync-dot.err{background:var(--imp)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* BUTTONS */
+.btn{font-family:'Geist',sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn:hover{background:var(--surface3);color:var(--text);border-color:rgba(180,130,80,0.4)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-accent:hover{background:#b5763c;color:#fff;border-color:#b5763c}
+.btn-ghost{background:transparent;border-color:transparent}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--border)}
+.btn-danger{color:var(--imp);border-color:transparent;background:transparent}
+.btn-danger:hover{background:var(--imp-bg);border-color:rgba(217,79,79,0.2)}
+
+/* MAIN */
+.main{max-width:860px;margin:0 auto;padding:24px}
+
+/* PAGE TOOLBAR */
+.page-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+.page-name-display{font-family:'Instrument Serif',serif;font-size:24px;color:var(--text);flex:1}
+.heading-dropdown-wrap{position:relative}
+.heading-dropdown-btn{font-family:'Geist',sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;min-width:160px;transition:all 0.15s}
+.heading-dropdown-btn:hover{border-color:rgba(180,130,80,0.4)}
+.heading-dropdown-btn .arrow{margin-left:auto;color:var(--text3);font-size:10px;transition:transform 0.2s}
+.heading-dropdown-btn.open .arrow{transform:rotate(180deg)}
+.heading-dropdown-menu{position:absolute;top:calc(100% + 6px);left:0;background:rgba(28,20,14,0.98);border:1px solid var(--border2);border-radius:var(--rl);padding:6px;min-width:220px;z-index:100;box-shadow:0 12px 32px rgba(0,0,0,0.4);display:none;backdrop-filter:blur(16px);max-height:300px;overflow-y:auto}
+.heading-dropdown-menu.open{display:block}
+.hdm-item{padding:8px 12px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;transition:all 0.12s}
+.hdm-item:hover{background:var(--surface2);color:var(--text)}
+.hdm-item.active{background:var(--accent-bg);color:var(--accent);font-weight:500}
+.hdm-count{font-size:10px;color:var(--text3);background:rgba(180,130,80,0.1);padding:1px 6px;border-radius:8px}
+
+/* SECTION */
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.section-title{font-family:'Instrument Serif',serif;font-size:18px;color:var(--text)}
+.section-count{font-size:11px;color:var(--text3);background:rgba(180,130,80,0.08);padding:2px 8px;border-radius:10px}
+
+/* PROMPT LIST */
+.prompt-list{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+
+/* PROMPT CARD */
+.prompt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;display:flex;gap:14px;align-items:flex-start;transition:border-color 0.15s,box-shadow 0.15s;backdrop-filter:blur(8px)}
+.prompt-card:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,0.25)}
+.prompt-card.imp-card{border-left:3px solid var(--imp)}
+.prompt-num{font-size:11px;color:var(--text3);font-weight:500;min-width:24px;padding-top:2px;flex-shrink:0}
+.prompt-body{flex:1;min-width:0}
+.prompt-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.prompt-text{font-size:13px;line-height:1.7;color:var(--text);flex:1;word-break:break-word}
+.imp-tag{font-size:9px;font-weight:700;letter-spacing:0.05em;background:var(--imp-bg);color:var(--imp);border:1px solid rgba(217,79,79,0.2);border-radius:5px;padding:2px 6px;flex-shrink:0;margin-top:2px}
+
+/* IMAGE */
+.prompt-image-area{margin-top:10px}
+.img-thumb-wrap{position:relative;display:inline-block;cursor:pointer}
+.img-thumb{width:90px;height:68px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block;transition:opacity 0.15s}
+.img-thumb:hover{opacity:0.85}
+.img-replace-btn{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.65);color:#fff;border:none;border-radius:4px;font-size:9px;padding:2px 5px;cursor:pointer;font-family:'Geist',sans-serif;opacity:0;transition:opacity 0.15s}
+.img-thumb-wrap:hover .img-replace-btn{opacity:1}
+.img-upload-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);background:var(--surface2);border:1px dashed var(--border2);border-radius:7px;padding:6px 10px;cursor:pointer;transition:all 0.15s;font-family:'Geist',sans-serif}
+.img-upload-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-bg)}
+.img-uploading{font-size:11px;color:var(--accent);font-style:italic}
+
+/* CARD ACTIONS */
+.prompt-actions{display:flex;gap:4px;margin-top:10px;align-items:center}
+.card-btn{font-family:'Geist',sans-serif;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.15s}
+.card-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.card-btn.copy:hover{color:var(--success);border-color:rgba(95,168,106,0.3);background:var(--success-bg)}
+.card-btn.del:hover{color:var(--imp);border-color:rgba(217,79,79,0.2);background:var(--imp-bg)}
+.copy-ok{color:var(--success)!important;border-color:rgba(95,168,106,0.3)!important;background:var(--success-bg)!important}
+
+/* PASTE */
+.paste-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:24px;backdrop-filter:blur(8px)}
+.paste-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.paste-header-title{font-size:13px;font-weight:600;color:var(--text)}
+.paste-header-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.paste-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.paste-textarea{width:100%;min-height:140px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;font-family:'Geist',sans-serif;font-size:12px;line-height:1.7;color:var(--text);resize:vertical;outline:none;transition:border-color 0.2s}
+.paste-textarea:focus{border-color:var(--accent)}
+.paste-textarea::placeholder{color:var(--text3)}
+
+/* REVIEW */
+.review-screen{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:24px;backdrop-filter:blur(8px)}
+.review-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.review-title{font-family:'Instrument Serif',serif;font-size:18px;flex:1;color:var(--text)}
+.review-body{padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.review-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:500;margin-bottom:4px}
+.review-input{font-family:'Geist',sans-serif;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);background:rgba(0,0,0,0.2);color:var(--text);outline:none;transition:border-color 0.15s;width:100%}
+.review-input:focus{border-color:var(--accent)}
+.review-items{display:flex;flex-direction:column;gap:6px;max-height:380px;overflow-y:auto}
+.review-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:rgba(0,0,0,0.15);border:1px solid var(--border);border-radius:var(--r)}
+.review-item.imp-item{border-left:3px solid var(--imp)}
+.review-num{font-size:11px;color:var(--text3);min-width:22px;padding-top:1px}
+.review-text{font-size:12px;line-height:1.6;color:var(--text);flex:1}
+.review-imp-tag{font-size:9px;font-weight:700;background:var(--imp-bg);color:var(--imp);border:1px solid rgba(217,79,79,0.2);border-radius:4px;padding:1px 5px;flex-shrink:0;margin-top:1px}
+.review-edit-btn{font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'Geist',sans-serif;flex-shrink:0;transition:all 0.12s}
+.review-edit-btn:hover{color:var(--accent);border-color:var(--accent)}
+.review-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.review-count-info{flex:1;font-size:11px;color:var(--text3)}
+.inline-edit-area{display:none;flex-direction:column;gap:8px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border)}
+.inline-edit-area.open{display:flex}
+
+/* IMAGE PANEL (half screen) */
+.img-panel{position:fixed;right:0;top:0;bottom:0;width:45vw;background:rgba(18,12,8,0.97);border-left:1px solid var(--border2);backdrop-filter:blur(20px);z-index:500;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.3s ease}
+.img-panel.open{transform:translateX(0)}
+.img-panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.img-panel-title{font-family:'Instrument Serif',serif;font-size:16px;color:var(--text)}
+.img-panel-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden}
+.img-panel-body img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.5)}
+.img-panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:499;display:none}
+.img-panel-overlay.open{display:block}
+
+/* SETTINGS */
+.settings-panel{position:fixed;top:54px;right:0;bottom:0;width:270px;background:rgba(18,12,8,0.98);border-left:1px solid var(--border2);backdrop-filter:blur(20px);z-index:150;transform:translateX(100%);transition:transform 0.25s;display:flex;flex-direction:column;overflow-y:auto}
+.settings-panel.open{transform:translateX(0)}
+.settings-header{padding:16px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+.settings-body{padding:16px 18px;display:flex;flex-direction:column;gap:20px}
+.settings-section-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;font-weight:500;margin-bottom:10px}
+.theme-options{display:flex;flex-direction:column;gap:8px}
+.theme-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);border:1px solid var(--border);cursor:pointer;transition:all 0.15s}
+.theme-option:hover{border-color:var(--border2);background:var(--surface2)}
+.theme-option.active{border-color:var(--accent);background:var(--accent-bg)}
+.theme-swatch{width:28px;height:28px;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1)}
+.theme-name{font-size:12px;font-weight:500;color:var(--text)}
+.theme-desc{font-size:10px;color:var(--text3);margin-top:1px}
+.upload-bg-btn{width:100%;padding:10px;background:var(--surface2);border:1px dashed var(--border2);border-radius:var(--r);color:var(--text2);font-family:'Geist',sans-serif;font-size:12px;cursor:pointer;transition:all 0.15s;text-align:center;display:block}
+.upload-bg-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.bg-preview{width:100%;height:60px;border-radius:var(--r);object-fit:cover;border:1px solid var(--border);display:none;margin-top:8px}
+.bg-preview.show{display:block}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;backdrop-filter:blur(4px)}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:rgba(28,20,14,0.98);border:1px solid var(--border2);border-radius:16px;padding:24px;width:min(440px,92vw);display:flex;flex-direction:column;gap:16px;transform:translateY(6px);transition:transform 0.2s;max-height:90vh;overflow-y:auto;backdrop-filter:blur(20px)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-family:'Instrument Serif',serif;font-size:18px;color:var(--text)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
+.field-input{font-family:'Geist',sans-serif;font-size:13px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);background:rgba(0,0,0,0.25);color:var(--text);outline:none;transition:border-color 0.15s;width:100%}
+.field-input:focus{border-color:var(--accent)}
+textarea.field-input{resize:vertical;line-height:1.6;min-height:80px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-size:12px;font-weight:500;padding:10px 18px;border-radius:10px;z-index:3000;transform:translateY(50px);opacity:0;transition:all 0.25s;pointer-events:none;max-width:280px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(95,168,106,0.4);color:var(--success)}
+.toast.error{border-color:rgba(217,79,79,0.4);color:var(--imp)}
+
+/* LOADING */
+.loading-screen{position:fixed;inset:0;background:rgba(10,7,4,0.9);z-index:8000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;backdrop-filter:blur(8px)}
+.loading-spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text3)}
+
+/* EMPTY / NO PAGES */
+.empty-page{text-align:center;padding:80px 24px;color:var(--text3)}
+.empty-page .e-icon{font-size:40px;margin-bottom:14px}
+.empty-page h2{font-family:'Instrument Serif',serif;font-size:22px;color:var(--text2);margin-bottom:8px}
+.empty-page p{font-size:13px;line-height:1.7;margin-bottom:20px}
+.no-pages{text-align:center;padding:100px 24px}
+.no-pages h2{font-family:'Instrument Serif',serif;font-size:28px;color:var(--text);margin-bottom:10px}
+.no-pages p{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box" id="pwBox">
+    <div class="pw-logo">Prompt<span>Vault</span></div>
+    <div class="pw-sub">Enter your password to continue</div>
+    <input class="pw-input" type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()">
+    <div class="pw-error" id="pwError">Incorrect password. Try again.</div>
+    <button class="pw-btn" onclick="checkPw()">Unlock →</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loadingScreen" style="display:none">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">Loading your prompts...</div>
+</div>
+
+<!-- IMAGE PANEL OVERLAY -->
+<div class="img-panel-overlay" id="imgPanelOverlay" onclick="closeImgPanel()"></div>
+
+<!-- IMAGE PANEL -->
+<div class="img-panel" id="imgPanel">
+  <div class="img-panel-header">
+    <div class="img-panel-title" id="imgPanelTitle">Image Preview</div>
+    <button class="btn btn-ghost" style="padding:4px 10px;font-size:16px" onclick="closeImgPanel()">✕</button>
+  </div>
+  <div class="img-panel-body">
+    <img id="imgPanelImg" src="" alt="">
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">Prompt<span>Vault</span></div>
+  <div class="page-tabs" id="pageTabs"></div>
+  <button class="new-page-btn" onclick="openNewPageModal()" title="New page">+</button>
+  <div class="sync-indicator">
+    <div class="sync-dot" id="syncDot"></div>
+    <span id="syncLabel">synced</span>
+  </div>
+  <button class="btn" onclick="toggleSettings()" title="Appearance">⚙</button>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    Appearance
+    <button class="btn btn-ghost" style="padding:2px 8px;font-size:14px" onclick="toggleSettings()">✕</button>
+  </div>
+  <div class="settings-body">
+    <div>
+      <div class="settings-section-title">Theme</div>
+      <div class="theme-options">
+        <div class="theme-option active" id="themeWarm" onclick="setTheme('warm')">
+          <div class="theme-swatch" style="background:linear-gradient(135deg,#1c1410,#3a2010)"></div>
+          <div><div class="theme-name">Warm Dark</div><div class="theme-desc">Deep amber, moody & rich</div></div>
+          <span id="warmCheck" style="color:var(--accent)">✓</span>
+        </div>
+        <div class="theme-option" id="themeLight" onclick="setTheme('light')">
+          <div class="theme-swatch" style="background:linear-gradient(135deg,#f7f6f3,#ebe9e4)"></div>
+          <div><div class="theme-name">Original Light</div><div class="theme-desc">Clean minimal white</div></div>
+          <span id="lightCheck" style="color:var(--accent);display:none">✓</span>
+        </div>
+        <div class="theme-option" id="themeDark" onclick="setTheme('dark')">
+          <div class="theme-swatch" style="background:linear-gradient(135deg,#0a0a0c,#18181d)"></div>
+          <div><div class="theme-name">Cool Dark</div><div class="theme-desc">Pure dark, no tones</div></div>
+          <span id="darkCheck" style="color:var(--accent);display:none">✓</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="settings-section-title">Custom Background</div>
+      <label class="upload-bg-btn">📷 Upload background image<input type="file" accept="image/*" style="display:none" onchange="uploadBg(event)"></label>
+      <img class="bg-preview" id="bgPreview">
+      <button class="btn btn-danger" id="removeBgBtn" style="display:none;width:100%;margin-top:8px" onclick="removeBg()">Remove background</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainArea"></div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="newPageModal">
+  <div class="modal">
+    <div class="modal-title">New Page</div>
+    <div class="field-group">
+      <label class="field-label">Page Name</label>
+      <input class="field-input" id="newPageName" placeholder="e.g. GROK IMAGINE" onkeydown="if(event.key==='Enter')createPage()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('newPageModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="createPage()">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editPromptModal">
+  <div class="modal">
+    <div class="modal-title">Edit Prompt</div>
+    <div class="field-group">
+      <label class="field-label">Prompt Text</label>
+      <textarea class="field-input" id="epText" rows="5"></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Heading</label>
+      <input class="field-input" id="epHeading" list="epHeadingList">
+      <datalist id="epHeadingList"></datalist>
+    </div>
+    <input type="hidden" id="epId">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('editPromptModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveEditPrompt()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="renamePageModal">
+  <div class="modal">
+    <div class="modal-title">Page Settings</div>
+    <div class="field-group">
+      <label class="field-label">Page Name</label>
+      <input class="field-input" id="renamePageInput" onkeydown="if(event.key==='Enter')saveRenamePage()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="deleteCurrentPage()" style="margin-right:auto">Delete Page</button>
+      <button class="btn" onclick="closeModal('renamePageModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveRenamePage()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────
+const API = 'https://script.google.com/macros/s/AKfycbxzcKIsfeQwuCj7HPtdn5BGq1oguUr6r0KuKf_C38FJp6oYHdOEKt5BI3dvQtTGrQzFfA/exec';
+const CORRECT_PW = 'S@dsatan89';
+
+// ─── STATE ───────────────────────────────────────────────────────
+let pages = []; // [{id, name}]
+let prompts = []; // all prompts from sheet
+let curPageId = null;
+let curHeading = 'all';
+let reviewData = null;
+
+// ─── PASSWORD ────────────────────────────────────────────────────
+function checkPw() {
+  const val = document.getElementById('pwInput').value;
+  if (val === CORRECT_PW) {
+    sessionStorage.setItem('pv_auth','1');
+    const ov = document.getElementById('pwOverlay');
+    ov.style.opacity='0'; ov.style.transition='opacity 0.4s';
+    setTimeout(()=>{ ov.style.display='none'; initApp(); },400);
+  } else {
+    const box = document.getElementById('pwBox');
+    const err = document.getElementById('pwError');
+    document.getElementById('pwInput').value='';
+    err.style.display='block';
+    box.classList.remove('pw-shake'); void box.offsetWidth; box.classList.add('pw-shake');
+  }
+}
+
+if (sessionStorage.getItem('pv_auth')) {
+  document.getElementById('pwOverlay').style.display='none';
+  initApp();
+} else {
+  setTimeout(()=>document.getElementById('pwInput')?.focus(),100);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+async function initApp() {
+  showLoading('Loading your prompts...');
+  applyTheme(localStorage.getItem('pv_theme')||'warm');
+  const bg = localStorage.getItem('pv_bg');
+  if (bg) applyBgImage(bg);
+  updateThemeChecks(localStorage.getItem('pv_theme')||'warm');
+  await loadAll();
+  hideLoading();
+  renderAll();
+}
+
+// ─── API ─────────────────────────────────────────────────────────
+async function apiGet(params) {
+  const url = API + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(data) {
+  const res = await fetch(API, {
+    method:'POST',
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+async function loadAll() {
+  try {
+    setSyncStatus('syncing','loading...');
+    const data = await apiGet({action:'getAll'});
+    if (data.error) throw new Error(data.error);
+    prompts = data.prompts || [];
+    // Rebuild pages list from unique page names in prompts + localStorage pages order
+    const savedPages = JSON.parse(localStorage.getItem('pv_pages')||'[]');
+    const promptPageNames = [...new Set(prompts.map(p=>p.page).filter(Boolean))];
+    // Merge: keep saved order, add any new ones from sheet
+    const allNames = [...new Set([...savedPages.map(p=>p.name), ...promptPageNames])];
+    pages = allNames.map(name => savedPages.find(p=>p.name===name) || {id:uid(), name});
+    // Ensure any page in prompts but not in pages list is added
+    if (!pages.length) pages = [];
+    curPageId = pages[0]?.id || null;
+    savePageOrder();
+    setSyncStatus('ok','synced');
+  } catch(e) {
+    setSyncStatus('err','offline');
+    toast('Could not connect to Google Sheets. Check your internet.','error');
+    // fallback: load from localStorage cache
+    prompts = JSON.parse(localStorage.getItem('pv_cache')||'[]');
+    pages = JSON.parse(localStorage.getItem('pv_pages')||'[]');
+    curPageId = pages[0]?.id || null;
+  }
+  // Cache locally
+  localStorage.setItem('pv_cache', JSON.stringify(prompts));
+}
+
+function savePageOrder() {
+  localStorage.setItem('pv_pages', JSON.stringify(pages));
+}
+
+// ─── SYNC STATUS ─────────────────────────────────────────────────
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (dot) { dot.className='sync-dot '+state; }
+  if (lbl) lbl.textContent = label;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────
+function renderAll() { renderTabs(); renderMain(); }
+
+function renderTabs() {
+  const el = document.getElementById('pageTabs');
+  el.innerHTML = pages.map(p => {
+    const cnt = prompts.filter(x=>x.page===p.name).length;
+    return `<button class="ptab${p.id===curPageId?' active':''}" onclick="switchPage('${p.id}')">
+      ${p.name}<span class="tab-count">${cnt}</span>
+    </button>`;
+  }).join('');
+}
+
+function renderMain() {
+  const area = document.getElementById('mainArea');
+  if (!pages.length) {
+    area.innerHTML=`<div class="no-pages"><div style="font-size:40px;margin-bottom:16px">📋</div>
+      <h2>No pages yet</h2><p>Create your first page to start organising your prompts.</p>
+      <button class="btn btn-accent" onclick="openNewPageModal()">+ Create First Page</button></div>`;
+    return;
+  }
+  const page = pages.find(p=>p.id===curPageId);
+  if (!page) return;
+
+  const pagePrompts = prompts.filter(p=>p.page===page.name);
+  const headings = [...new Set(pagePrompts.map(p=>p.heading).filter(Boolean))];
+  const activeLabel = curHeading==='all'?'All Headings':curHeading;
+
+  const hdmItems = `<div class="hdm-item${curHeading==='all'?' active':''}" onclick="selectHeading('all')">
+    All Headings <span class="hdm-count">${pagePrompts.length}</span></div>`
+    + headings.map(h=>{
+      const cnt = pagePrompts.filter(p=>p.heading===h).length;
+      return `<div class="hdm-item${curHeading===h?' active':''}" onclick="selectHeading('${escAttr(h)}')">
+        ${h} <span class="hdm-count">${cnt}</span></div>`;
+    }).join('');
+
+  let html = `<div class="page-toolbar">
+    <div class="page-name-display">${page.name}</div>
+    <button class="btn btn-ghost" onclick="openRenamePageModal()" style="font-size:11px;color:var(--text3)">rename</button>
+    <div class="heading-dropdown-wrap">
+      <button class="heading-dropdown-btn" id="hdBtn" onclick="toggleHeadingDropdown()">
+        <span id="hdBtnLabel">${activeLabel}</span><span class="arrow">▼</span>
+      </button>
+      <div class="heading-dropdown-menu" id="hdMenu">${hdmItems}</div>
+    </div>
+    <button class="btn btn-accent" onclick="showPasteSection()">+ Add Prompts</button>
+  </div>`;
+
+  if (reviewData) {
+    html += buildReviewScreen();
+  } else {
+    html += `<div id="pasteSection" style="display:none">${buildPasteSection()}</div>`;
+  }
+
+  // Filter prompts for display
+  let displayPrompts = pagePrompts;
+  if (curHeading !== 'all') displayPrompts = displayPrompts.filter(p=>p.heading===curHeading);
+
+  if (!displayPrompts.length) {
+    html += `<div class="empty-page"><div class="e-icon">✦</div>
+      <h2>No prompts here</h2><p>Paste a batch above to get started.</p></div>`;
+  } else {
+    const groups = {};
+    const groupHeadings = curHeading==='all' ? headings : [curHeading];
+    groupHeadings.forEach(h=>groups[h]=[]);
+    displayPrompts.forEach(p=>{ if(!groups[p.heading])groups[p.heading]=[]; groups[p.heading].push(p); });
+    Object.entries(groups).forEach(([h,items])=>{
+      if (!items.length) return;
+      html += `<div class="section-header">
+        <div class="section-title">${h}</div>
+        <span class="section-count">${items.length} prompt${items.length!==1?'s':''}</span>
+      </div><div class="prompt-list">`;
+      items.forEach((p,i)=>{ html += buildPromptCard(p, i+1); });
+      html += `</div>`;
+    });
+  }
+
+  area.innerHTML = html;
+  if (!reviewData) document.getElementById('pasteSection').style.display='none';
+}
+
+function buildPasteSection() {
+  return `<div class="paste-section" id="pasteSectionInner">
+    <div class="paste-header">
+      <div><div class="paste-header-title">Paste Batch</div>
+      <div class="paste-header-sub">First line = heading (e.g. "1. Dresses Part 2"). Each item on a new line with * or -</div></div>
+      <button class="btn btn-ghost btn-danger" onclick="hidePasteSection()">✕</button>
+    </div>
+    <div class="paste-body">
+      <textarea class="paste-textarea" id="pasteTA" placeholder="1. Dresses (Part 2)&#10;&#10;* Sweetheart Neck Solid Split Maxi Dress&#10;* Spaghetti Strap Floral Sheath Dress -[x]&#10;* Halter Neck Mesh Ruffle Maxi Dress***&#10;..."></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="hidePasteSection()">Cancel</button>
+        <button class="btn btn-accent" onclick="parseBatch()">Parse Batch →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildReviewScreen() {
+  const items = reviewData.prompts;
+  const itemsHtml = items.map((p,i)=>`
+    <div class="review-item${p.imp?' imp-item':''}" id="ri-${i}">
+      <span class="review-num">${i+1}.</span>
+      <span class="review-text" id="rt-${i}">${escHtml(p.text)}</span>
+      ${p.imp?'<span class="review-imp-tag">IMP</span>':''}
+      <button class="review-edit-btn" onclick="toggleReviewEdit(${i})">edit</button>
+    </div>
+    <div class="inline-edit-area" id="rea-${i}">
+      <textarea class="field-input" id="ret-${i}" rows="3" style="font-size:12px">${escHtml(p.text)}</textarea>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-accent" style="font-size:11px;padding:5px 12px" onclick="saveReviewEdit(${i})">Save</button>
+        <button class="btn" style="font-size:11px;padding:5px 12px" onclick="toggleReviewEdit(${i})">Cancel</button>
+      </div>
+    </div>`).join('');
+
+  return `<div class="review-screen">
+    <div class="review-header">
+      <div class="review-title">Review Batch (${items.length} prompts)</div>
+      <button class="btn btn-ghost btn-danger" onclick="cancelReview()">✕ Cancel</button>
+    </div>
+    <div class="review-body">
+      <div><div class="review-label">Heading — edit if needed</div>
+      <input class="review-input" id="reviewHeading" value="${escAttr(reviewData.heading)}"></div>
+      <div class="review-items">${itemsHtml}</div>
+    </div>
+    <div class="review-footer">
+      <div class="review-count-info">${items.length} prompts · ${items.filter(p=>p.imp).length} marked IMP</div>
+      <button class="btn" onclick="cancelReview()">Cancel</button>
+      <button class="btn btn-accent" onclick="confirmBatch()">Save All to Vault →</button>
+    </div>
+  </div>`;
+}
+
+function buildPromptCard(p, num) {
+  const imgHtml = p.imageUrl
+    ? `<div class="prompt-image-area">
+        <div class="img-thumb-wrap" onclick="openImgPanel('${escAttr(p.imageUrl)}','${escAttr(p.text.slice(0,40))}')">
+          <img class="img-thumb" src="${escAttr(p.imageUrl)}" alt="">
+          <label class="img-replace-btn" onclick="event.stopPropagation()">replace
+            <input type="file" accept="image/*" style="display:none" onchange="replaceImage(event,'${p.id}')">
+          </label>
+        </div>
+      </div>`
+    : `<div class="prompt-image-area">
+        <label class="img-upload-btn">📎 Add image
+          <input type="file" accept="image/*" style="display:none" onchange="uploadImage(event,'${p.id}')">
+        </label>
+      </div>`;
+
+  return `<div class="prompt-card${p.imp?' imp-card':''}" id="card-${p.id}">
+    <div class="prompt-num">${num}.</div>
+    <div class="prompt-body">
+      <div class="prompt-top">
+        <div class="prompt-text">${escHtml(p.text)}</div>
+        ${p.imp?'<span class="imp-tag">IMP</span>':''}
+      </div>
+      ${imgHtml}
+      <div class="prompt-actions">
+        <button class="card-btn copy" id="copybtn-${p.id}" onclick="copyPrompt('${p.id}')">Copy</button>
+        <button class="card-btn" onclick="openEditPromptModal('${p.id}')">Edit</button>
+        <button class="card-btn del" onclick="deletePrompt('${p.id}')">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── HEADING DROPDOWN ────────────────────────────────────────────
+function selectHeading(h) { curHeading=h; closeHeadingDropdown(); renderMain(); }
+function toggleHeadingDropdown() {
+  document.getElementById('hdBtn')?.classList.toggle('open');
+  document.getElementById('hdMenu')?.classList.toggle('open');
+}
+function closeHeadingDropdown() {
+  document.getElementById('hdBtn')?.classList.remove('open');
+  document.getElementById('hdMenu')?.classList.remove('open');
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('.heading-dropdown-wrap')) closeHeadingDropdown(); });
+
+// ─── PASTE & PARSE ───────────────────────────────────────────────
+function showPasteSection() {
+  const s = document.getElementById('pasteSection');
+  if (s) { s.style.display='block'; s.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+function hidePasteSection() {
+  const s = document.getElementById('pasteSection');
+  if (s) s.style.display='none';
+}
+
+function parseBatch() {
+  const raw = document.getElementById('pasteTA')?.value?.trim();
+  if (!raw) { toast('Paste something first!','error'); return; }
+
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  let heading = 'General';
+  let promptLines = [];
+
+  const firstLine = lines[0];
+  const headingMatch = firstLine.match(/^[\d]+\.\s*(.+)/) || firstLine.match(/^#+\s*(.+)/);
+  if (headingMatch) {
+    heading = headingMatch[1].trim(); promptLines = lines.slice(1);
+  } else if (!firstLine.startsWith('*')&&!firstLine.startsWith('-')&&!firstLine.startsWith('•')&&firstLine.length<80) {
+    heading = firstLine; promptLines = lines.slice(1);
+  } else {
+    promptLines = lines;
+  }
+
+  const parsedPrompts = [];
+  promptLines.forEach(line => {
+    let raw = line.trim();
+    if (!raw) return;
+    // Detect IMP on raw line first
+    let imp = false;
+    if (/\[x\]/i.test(raw)) imp = true;
+    if (/\*+\s*$/.test(raw)) imp = true;
+    // Clean all markers
+    let text = raw;
+    text = text.replace(/^\s*[-\*\•]\s*\[x\]\s*/i,'');
+    text = text.replace(/^\s*\[x\]\s*/i,'');
+    text = text.replace(/^\s*[-\*\•\–]\s*/,'');
+    text = text.replace(/\s*\[x\]\s*/gi,'');
+    text = text.replace(/\s*\[\s*\]\s*/g,'');
+    text = text.replace(/\*+\s*$/,'');
+    text = text.replace(/^\*+\s*/,'');
+    text = text.trim();
+    if (text) parsedPrompts.push({text, imp});
+  });
+
+  if (!parsedPrompts.length) { toast('No prompts detected. Check your format.','error'); return; }
+  reviewData = {heading, prompts: parsedPrompts};
+  renderMain();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cancelReview() { reviewData=null; renderMain(); }
+
+function toggleReviewEdit(i) { document.getElementById(`rea-${i}`)?.classList.toggle('open'); }
+function saveReviewEdit(i) {
+  const val = document.getElementById(`ret-${i}`)?.value?.trim();
+  if (!val) return;
+  reviewData.prompts[i].text = val;
+  document.getElementById(`rt-${i}`).textContent = val;
+  toggleReviewEdit(i);
+}
+
+async function confirmBatch() {
+  const page = pages.find(p=>p.id===curPageId);
+  if (!page) return;
+  const heading = document.getElementById('reviewHeading')?.value?.trim() || reviewData.heading || 'General';
+  const batch = reviewData.prompts;
+  const count = batch.length;
+
+  showLoading(`Saving ${count} prompts...`);
+  setSyncStatus('syncing','saving...');
+
+  let success = 0;
+  for (let i=0; i<batch.length; i++) {
+    const p = batch[i];
+    const id = uid();
+    const newPrompt = {
+      id, page:page.name, heading, number:i+1,
+      title:'', text:p.text, imp:p.imp,
+      tags:[], imageUrl:'', createdAt:Date.now()
+    };
+    try {
+      await apiPost({action:'save', ...newPrompt});
+      prompts.push(newPrompt);
+      localStorage.setItem('pv_cache',JSON.stringify(prompts));
+      success++;
+      document.getElementById('loadingText').textContent = `Saving ${success}/${count}...`;
+    } catch(e) { /* continue */ }
+  }
+
+  reviewData = null;
+  curHeading = heading;
+  hideLoading();
+  setSyncStatus('ok','synced');
+  savePageOrder();
+  renderAll();
+  toast(`${success} of ${count} prompts saved!`,'success');
+}
+
+// ─── COPY ────────────────────────────────────────────────────────
+function copyPrompt(id) {
+  const p = prompts.find(x=>x.id===id);
+  if (!p) return;
+  navigator.clipboard.writeText(p.text).then(()=>{
+    const btn = document.getElementById('copybtn-'+id);
+    if (btn) { btn.textContent='✓ Copied'; btn.classList.add('copy-ok'); setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copy-ok'); },2000); }
+  });
+}
+
+// ─── EDIT PROMPT ─────────────────────────────────────────────────
+function openEditPromptModal(id) {
+  const p = prompts.find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('epText').value = p.text;
+  document.getElementById('epHeading').value = p.heading;
+  document.getElementById('epId').value = id;
+  const page = pages.find(pg=>pg.id===curPageId);
+  const headings = [...new Set(prompts.filter(x=>x.page===page?.name).map(x=>x.heading))];
+  document.getElementById('epHeadingList').innerHTML = headings.map(h=>`<option value="${h}">`).join('');
+  openModal('editPromptModal');
+}
+
+async function saveEditPrompt() {
+  const id = document.getElementById('epId').value;
+  const p = prompts.find(x=>x.id===id);
+  if (!p) return;
+  p.text = document.getElementById('epText').value.trim();
+  p.heading = document.getElementById('epHeading').value.trim() || 'General';
+  setSyncStatus('syncing','saving...');
+  try {
+    await apiPost({action:'update', id:p.id, text:p.text, heading:p.heading, imp:p.imp, imageUrl:p.imageUrl||''});
+    localStorage.setItem('pv_cache',JSON.stringify(prompts));
+    setSyncStatus('ok','synced');
+    toast('Prompt updated!','success');
+  } catch(e) { setSyncStatus('err','sync error'); toast('Saved locally, sync failed','error'); }
+  closeModal('editPromptModal'); renderAll();
+}
+
+// ─── DELETE ──────────────────────────────────────────────────────
+async function deletePrompt(id) {
+  if (!confirm('Delete this prompt?')) return;
+  prompts = prompts.filter(p=>p.id!==id);
+  localStorage.setItem('pv_cache',JSON.stringify(prompts));
+  renderAll();
+  setSyncStatus('syncing','deleting...');
+  try {
+    await apiPost({action:'delete', id});
+    setSyncStatus('ok','synced');
+    toast('Deleted.');
+  } catch(e) { setSyncStatus('err','sync error'); }
+}
+
+// ─── IMAGE UPLOAD ────────────────────────────────────────────────
+async function uploadImage(e, id) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const p = prompts.find(x=>x.id===id);
+  if (!p) return;
+
+  // Show uploading state
+  const card = document.getElementById('card-'+id);
+  const imgArea = card?.querySelector('.prompt-image-area');
+  if (imgArea) imgArea.innerHTML = '<span class="img-uploading">⏳ Uploading image...</span>';
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const base64full = ev.target.result;
+    const base64 = base64full.split(',')[1];
+    const mimeType = file.type;
+    const filename = file.name;
+
+    setSyncStatus('syncing','uploading...');
+    try {
+      const res = await apiPost({action:'uploadImage', base64, mimeType, filename});
+      if (!res.url) throw new Error('No URL returned');
+      p.imageUrl = res.url;
+      localStorage.setItem('pv_cache',JSON.stringify(prompts));
+      await apiPost({action:'update', id:p.id, text:p.text, heading:p.heading, imp:p.imp, imageUrl:p.imageUrl});
+      setSyncStatus('ok','synced');
+      toast('Image uploaded!','success');
+      renderAll();
+    } catch(err) {
+      setSyncStatus('err','upload failed');
+      toast('Image upload failed. Try again.','error');
+      renderAll();
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function replaceImage(e, id) { await uploadImage(e, id); }
+
+// ─── IMAGE PANEL ─────────────────────────────────────────────────
+function openImgPanel(url, title) {
+  document.getElementById('imgPanelImg').src = url;
+  document.getElementById('imgPanelTitle').textContent = title || 'Image Preview';
+  document.getElementById('imgPanel').classList.add('open');
+  document.getElementById('imgPanelOverlay').classList.add('open');
+}
+function closeImgPanel() {
+  document.getElementById('imgPanel').classList.remove('open');
+  document.getElementById('imgPanelOverlay').classList.remove('open');
+  setTimeout(()=>{ document.getElementById('imgPanelImg').src=''; },300);
+}
+
+// ─── PAGES ───────────────────────────────────────────────────────
+function switchPage(id) { curPageId=id; curHeading='all'; reviewData=null; renderAll(); }
+
+function openNewPageModal() {
+  document.getElementById('newPageName').value='';
+  openModal('newPageModal');
+  setTimeout(()=>document.getElementById('newPageName').focus(),80);
+}
+function createPage() {
+  const name = document.getElementById('newPageName').value.trim().toUpperCase();
+  if (!name) return;
+  if (pages.find(p=>p.name===name)) { toast('Page already exists!','error'); return; }
+  const page = {id:uid(), name};
+  pages.push(page);
+  curPageId = page.id;
+  curHeading = 'all';
+  savePageOrder();
+  closeModal('newPageModal');
+  renderAll();
+  toast(`Page "${name}" created!`,'success');
+}
+
+function openRenamePageModal() {
+  const page = pages.find(p=>p.id===curPageId);
+  if (!page) return;
+  document.getElementById('renamePageInput').value = page.name;
+  openModal('renamePageModal');
+  setTimeout(()=>document.getElementById('renamePageInput').focus(),80);
+}
+async function saveRenamePage() {
+  const page = pages.find(p=>p.id===curPageId);
+  const name = document.getElementById('renamePageInput').value.trim().toUpperCase();
+  if (!name||!page) return;
+  const oldName = page.name;
+  page.name = name;
+  // Update all prompts with old page name
+  prompts.forEach(p=>{ if(p.page===oldName) p.page=name; });
+  localStorage.setItem('pv_cache',JSON.stringify(prompts));
+  savePageOrder();
+  closeModal('renamePageModal');
+  renderAll();
+  // Sync each updated prompt
+  setSyncStatus('syncing','renaming...');
+  try {
+    for (const p of prompts.filter(x=>x.page===name)) {
+      await apiPost({action:'update', id:p.id, text:p.text, heading:p.heading, imp:p.imp, imageUrl:p.imageUrl||''});
+    }
+    setSyncStatus('ok','synced');
+    toast('Page renamed!','success');
+  } catch(e) { setSyncStatus('err','sync error'); }
+}
+
+async function deleteCurrentPage() {
+  const page = pages.find(p=>p.id===curPageId);
+  if (!page) return;
+  if (!confirm(`Delete page "${page.name}" and ALL its prompts? This cannot be undone.`)) return;
+  const toDelete = prompts.filter(p=>p.page===page.name);
+  prompts = prompts.filter(p=>p.page!==page.name);
+  pages = pages.filter(p=>p.id!==curPageId);
+  curPageId = pages[0]?.id||null;
+  curHeading='all';
+  localStorage.setItem('pv_cache',JSON.stringify(prompts));
+  savePageOrder();
+  closeModal('renamePageModal');
+  renderAll();
+  setSyncStatus('syncing','deleting...');
+  try {
+    for (const p of toDelete) await apiPost({action:'delete', id:p.id});
+    setSyncStatus('ok','synced');
+    toast('Page deleted.','');
+  } catch(e) { setSyncStatus('err','sync error'); }
+}
+
+// ─── THEME ───────────────────────────────────────────────────────
+const THEMES = {
+  warm:{'--bg':'#1c1410','--surface':'rgba(38,28,20,0.92)','--surface2':'rgba(48,36,26,0.85)','--surface3':'rgba(60,44,30,0.8)','--border':'rgba(180,130,80,0.15)','--border2':'rgba(180,130,80,0.28)','--text':'#f0e6d6','--text2':'#b89878','--text3':'#7a6248','--accent':'#c9874a','--accent-bg':'rgba(201,135,74,0.12)','--imp':'#d94f4f','--imp-bg':'rgba(217,79,79,0.1)','--success':'#5fa86a','--success-bg':'rgba(95,168,106,0.1)'},
+  light:{'--bg':'#f7f6f3','--surface':'#ffffff','--surface2':'#f2f1ee','--surface3':'#ebe9e4','--border':'#e2e0db','--border2':'#d4d1ca','--text':'#1a1917','--text2':'#6b6860','--text3':'#a8a49e','--accent':'#2563eb','--accent-bg':'#eff4ff','--imp':'#dc2626','--imp-bg':'#fef2f2','--success':'#16a34a','--success-bg':'#f0fdf4'},
+  dark:{'--bg':'#0a0a0c','--surface':'rgba(20,20,24,0.95)','--surface2':'rgba(28,28,34,0.9)','--surface3':'rgba(36,36,44,0.85)','--border':'rgba(255,255,255,0.07)','--border2':'rgba(255,255,255,0.13)','--text':'#e8e8f0','--text2':'#7a7a8c','--text3':'#4a4a5a','--accent':'#8b7cf6','--accent-bg':'rgba(139,124,246,0.12)','--imp':'#f87171','--imp-bg':'rgba(248,113,113,0.1)','--success':'#4ade80','--success-bg':'rgba(74,222,128,0.1)'}
+};
+function applyTheme(t) {
+  const vars = THEMES[t]||THEMES.warm;
+  Object.entries(vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  const topbar = document.querySelector('.topbar');
+  if (topbar) topbar.style.background = t==='light'?'rgba(255,255,255,0.96)':t==='dark'?'rgba(10,10,12,0.96)':'rgba(28,20,16,0.96)';
+}
+function setTheme(t) {
+  localStorage.setItem('pv_theme',t);
+  applyTheme(t);
+  updateThemeChecks(t);
+  toast('Theme applied!','success');
+}
+function updateThemeChecks(t) {
+  ['warm','light','dark'].forEach(n=>{
+    const opt = document.getElementById('theme'+n[0].toUpperCase()+n.slice(1));
+    const chk = document.getElementById(n+'Check');
+    if (opt) opt.classList.toggle('active',n===t);
+    if (chk) chk.style.display = n===t?'inline':'none';
+  });
+}
+function applyBgImage(src) {
+  if (src) {
+    document.body.style.backgroundImage=`url(${src})`;
+    document.body.classList.add('has-bg');
+    const p=document.getElementById('bgPreview'); if(p){p.src=src;p.classList.add('show');}
+    const r=document.getElementById('removeBgBtn'); if(r) r.style.display='block';
+  } else {
+    document.body.style.backgroundImage='';
+    document.body.classList.remove('has-bg');
+    const p=document.getElementById('bgPreview'); if(p){p.src='';p.classList.remove('show');}
+    const r=document.getElementById('removeBgBtn'); if(r) r.style.display='none';
+  }
+}
+function uploadBg(e) {
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{ const src=ev.target.result; localStorage.setItem('pv_bg',src); applyBgImage(src); toast('Background set!','success'); };
+  r.readAsDataURL(file);
+}
+function removeBg() { localStorage.removeItem('pv_bg'); applyBgImage(null); toast('Background removed.'); }
+function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('open'); }
+
+// ─── MODALS ──────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('open'); });
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.modal-overlay.open').forEach(el=>el.classList.remove('open'));
+    closeImgPanel();
+    document.getElementById('settingsPanel').classList.remove('open');
+  }
+});
+
+// ─── LOADING ─────────────────────────────────────────────────────
+function showLoading(msg='Loading...') {
+  const s=document.getElementById('loadingScreen');
+  const t=document.getElementById('loadingText');
+  if(s) s.style.display='flex';
+  if(t) t.textContent=msg;
+}
+function hideLoading() {
+  const s=document.getElementById('loadingScreen');
+  if(s) s.style.display='none';
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────
+function toast(msg,type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function escAttr(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
