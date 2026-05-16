@@ -499,6 +499,35 @@ async function apiPost(data) {
   });
 }
 
+// For large payloads (image upload) — uses fetch POST with JSON body
+// Google Apps Script doPost reads e.postData.contents and returns JSONP via callback param
+async function apiPostLarge(data) {
+  const cbName = 'pvcb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      reject(new Error('Timeout'));
+    }, 60000); // 60s for image upload
+    window[cbName] = (result) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      resolve(result);
+    };
+    fetch(API + '?callback=' + cbName, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(data),
+    })
+    .then(res => res.text())
+    .then(text => {
+      // GAS returns: callbackName({...json...})
+      // Eval it to trigger the callback
+      try { eval(text); } catch(e) { reject(e); }
+    })
+    .catch(err => { clearTimeout(timeout); delete window[cbName]; reject(err); });
+  });
+}
+
 async function loadAll() {
   try {
     setSyncStatus('syncing','loading...');
@@ -895,7 +924,7 @@ async function uploadImage(e, id) {
 
     setSyncStatus('syncing','uploading...');
     try {
-      const res = await apiPost({action:'uploadImage', base64, mimeType, filename});
+      const res = await apiPostLarge({action:'uploadImage', base64, mimeType, filename});
       if (!res.url) throw new Error('No URL returned');
       p.imageUrl = res.url;
       localStorage.setItem('pv_cache',JSON.stringify(prompts));
